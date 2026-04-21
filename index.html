@@ -92,6 +92,58 @@ select{width:100%;padding:9px 30px 9px 10px;border:1px solid var(--border);borde
   .actions{flex-wrap:wrap}
   .actions .btn{flex:1}
 }
+
+/* ===== FAB TRACCIATO GPS ===== */
+#fab-tracciato{
+  position:fixed;right:20px;bottom:24px;z-index:1000;
+  width:64px;height:64px;border-radius:50%;
+  background:#1a7a3a;color:#fff;
+  display:none;align-items:center;justify-content:center;
+  font-size:26px;box-shadow:0 4px 14px rgba(0,0,0,.28);
+  cursor:pointer;user-select:none;touch-action:manipulation;
+  border:3px solid #fff;
+  transition:background .2s,transform .15s;
+}
+#fab-tracciato.mostrato{display:flex}
+#fab-tracciato:active{transform:scale(.94)}
+#fab-tracciato.attivo{
+  background:#c0392b;
+  animation:fab-pulse 2s infinite;
+}
+@keyframes fab-pulse{
+  0%,100%{box-shadow:0 4px 14px rgba(192,57,43,.4)}
+  50%{box-shadow:0 4px 24px rgba(192,57,43,.85)}
+}
+#fab-etichetta{
+  position:fixed;right:20px;bottom:94px;z-index:999;
+  background:rgba(26,42,58,.92);color:#fff;
+  padding:6px 12px;border-radius:8px;
+  font-size:12px;font-weight:500;
+  pointer-events:none;
+  display:none;
+  white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+#fab-etichetta.visible{display:block}
+
+/* Modal conferma tracciato */
+#trk-modal{
+  display:none;position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,.55);
+  align-items:center;justify-content:center;
+  padding:20px;
+}
+#trk-modal.visible{display:flex}
+#trk-modal-card{
+  background:#fff;border-radius:16px;
+  padding:22px;max-width:360px;width:100%;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+}
+#trk-modal-icon{font-size:36px;text-align:center;margin-bottom:8px}
+#trk-modal-title{font-size:17px;font-weight:600;text-align:center;color:var(--text);margin-bottom:10px}
+#trk-modal-body{font-size:14px;color:var(--muted);text-align:center;line-height:1.5;margin-bottom:18px}
+#trk-modal-actions{display:flex;gap:10px}
+#trk-modal-actions .btn{flex:1;padding:12px;font-size:14px;font-weight:600;text-align:center}
 </style>
 </head>
 <body>
@@ -139,6 +191,7 @@ function checkPwd(){
   if(val===_PWD){
     localStorage.setItem('fd_pwd_ok',_PWD_HASH);
     document.getElementById('pwd-screen').style.display='none';
+    var fab=document.getElementById('fab-tracciato');if(fab)fab.classList.add('mostrato');
   } else {
     document.getElementById('pwd-error').textContent='Password errata — riprova';
     document.getElementById('pwd-input').value='';
@@ -147,6 +200,9 @@ function checkPwd(){
 }
 if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
   document.getElementById('pwd-screen').style.display='none';
+  window.addEventListener('DOMContentLoaded',function(){
+    var fab=document.getElementById('fab-tracciato');if(fab)fab.classList.add('mostrato');
+  });
 }
 </script>
 
@@ -638,6 +694,17 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
     </div>
   </div>
   <div id="storico-lista"></div>
+
+  <!-- ===== SEZIONE TRACCIATI GPS ===== -->
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="trkToggleSezione()">
+      <div class="section-title" style="margin-bottom:0">🛰 Tracciati GPS</div>
+      <span id="trk-sezione-chevron" style="font-size:13px;color:var(--muted)">▼</span>
+    </div>
+    <div id="trk-sezione-body" style="display:none;margin-top:12px">
+      <div id="trk-lista"></div>
+    </div>
+  </div>
 </div>
 
 <!-- OVERLAY NOME SPOT (fuori dalla mappa, evita bug Safari iOS con tastiera) -->
@@ -790,7 +857,7 @@ function showPanel(id,el){
   if(id==='mappa'){document.body.classList.add('mappa-active');setTimeout(initMap,100);}
   else{document.body.classList.remove('mappa-active');}
   if(id==='nuova'){populateSpotDropdown();rilevafaseLunare(true);}
-  if(id==='storico')renderStorico();
+  if(id==='storico'){renderStorico();if(document.getElementById('trk-sezione-body').style.display!=='none')trkRenderLista();}
   if(id==='statistiche')renderStats();
   if(id==='previsione')initKNN();
   if(id==='oracle') oracleCaricaMemoria();
@@ -1305,6 +1372,27 @@ function renderStorico(){
     var stars='★'.repeat(parseInt(u.voto||3));
     var nCatture=u.catture.length;
 
+    // Tracciato associato?
+    var trkAssociato=typeof tracciati!=='undefined'?tracciati.find(function(x){return x.uscita_id===u.id;}):null;
+    var trkBadgeHtml='';
+    var trkMetricheHtml='';
+    if(trkAssociato){
+      var mTrk=trkMetriche(trkAssociato);
+      trkBadgeHtml='<span class="badge" style="background:#fff3e8;color:#e07b39">🛰 '+mTrk.km.toFixed(2)+' km</span> ';
+      trkMetricheHtml=
+        '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f4f8">'+
+        '<div style="font-size:11px;font-weight:600;color:#e07b39;text-transform:uppercase;margin-bottom:6px">🛰 Tracciato</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px">'+
+          '<span class="badge">📏 '+mTrk.km.toFixed(2)+' km</span>'+
+          '<span class="badge">⏱ '+trkFmtDurata(mTrk.durata_min)+'</span>'+
+          '<span class="badge">🏃 '+trkFmtDurata(mTrk.t_movimento_min)+' in movimento</span>'+
+          '<span class="badge">⏸ '+trkFmtDurata(mTrk.t_fermo_min)+' fermo</span>'+
+          '<span class="badge">📍 '+mTrk.n_soste+' soste</span>'+
+          '<span class="badge">🎯 '+(mTrk.km>0?(nCatture/mTrk.km).toFixed(2):'0')+' cat./km</span>'+
+        '</div>'+
+        '</div>';
+    }
+
     // DETTAGLIO COMPLETO (nascosto di default)
     var meteoRighe=[
       u.meteo.temp?'🌡 Temp. aria: '+u.meteo.temp:'',
@@ -1350,6 +1438,8 @@ function renderStorico(){
       catchDetail+
       // note
       (u.note?'<div style="margin-top:10px;font-size:13px;color:var(--muted);font-style:italic;border-top:1px solid #f0f4f8;padding-top:8px">📝 '+u.note+'</div>':'')+
+      // tracciato (se associato)
+      trkMetricheHtml+
       '</div>';
 
     return '<div class="uscita-card" style="cursor:pointer" onclick="toggleDetUscita('+u.id+',event)">'+
@@ -1359,6 +1449,7 @@ function renderStorico(){
           '<div class="uscita-spot">'+[u.zona,u.spot].filter(Boolean).join(' — ')+'</div>'+
         '</div>'+
         '<div style="display:flex;gap:8px;align-items:center">'+
+          trkBadgeHtml+
           '<span class="stars">'+stars+'</span>'+
           '<span style="font-size:12px;color:var(--muted)">🐟 '+nCatture+'</span>'+
           '<span id="chev-'+u.id+'" style="font-size:12px;color:var(--muted)">▼</span>'+
@@ -1770,15 +1861,43 @@ function leggiImportJSON(input){
   reader.onload=function(e){
     try{
       var data=JSON.parse(e.target.result);
-      if(!Array.isArray(data)){alert('⚠️ File non valido: il JSON deve contenere un array di uscite.');return;}
-      if(!confirm('Trovate '+data.length+' uscite nel file.\n\nScegli:\n- OK = unisci ai dati esistenti\n- Annulla = operazione annullata')){return;}
+      var usciteData=[],tracciatiData=[];
+      // Nuovo formato: {_format:'fd-v2', uscite:[], tracciati:[]}
+      if(data&&typeof data==='object'&&!Array.isArray(data)&&data.uscite){
+        usciteData=Array.isArray(data.uscite)?data.uscite:[];
+        tracciatiData=Array.isArray(data.tracciati)?data.tracciati:[];
+      }
+      // Vecchio formato: array di uscite
+      else if(Array.isArray(data)){
+        usciteData=data;
+      }
+      else {
+        alert('⚠️ File non valido: formato non riconosciuto.');return;
+      }
+      var msg='Trovate '+usciteData.length+' uscite';
+      if(tracciatiData.length)msg+=' e '+tracciatiData.length+' tracciati';
+      msg+=' nel file.\n\nScegli:\n- OK = unisci ai dati esistenti\n- Annulla = operazione annullata';
+      if(!confirm(msg))return;
+      // Merge uscite
       var idEsistenti=new Set(uscite.map(function(u){return u.id;}));
-      var nuove=data.filter(function(u){return !idEsistenti.has(u.id);});
-      uscite=uscite.concat(nuove);
+      var nuoveUscite=usciteData.filter(function(u){return !idEsistenti.has(u.id);});
+      uscite=uscite.concat(nuoveUscite);
       uscite.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
       saveUscite();
-      alert('✅ Importate '+nuove.length+' uscite nuove. Duplicate ignorate: '+(data.length-nuove.length)+'.');
+      // Merge tracciati
+      var nuoviTrk=0;
+      if(tracciatiData.length&&typeof tracciati!=='undefined'){
+        var idTrkEsist=new Set(tracciati.map(function(t){return t.id;}));
+        var nuovi=tracciatiData.filter(function(t){return !idTrkEsist.has(t.id);});
+        tracciati=tracciati.concat(nuovi);
+        trkSaveTracciati();
+        nuoviTrk=nuovi.length;
+      }
+      var finale='✅ Importate '+nuoveUscite.length+' uscite nuove. Duplicate ignorate: '+(usciteData.length-nuoveUscite.length)+'.';
+      if(tracciatiData.length)finale+='\n✅ Importati '+nuoviTrk+' tracciati nuovi. Duplicati ignorati: '+(tracciatiData.length-nuoviTrk)+'.';
+      alert(finale);
       renderStorico();
+      if(typeof trkRenderLista==='function')trkRenderLista();
     }catch(err){alert('⚠️ Errore nella lettura del file JSON.');}
   };
   reader.readAsText(file);
@@ -1798,7 +1917,7 @@ function esportaCSV(){
   dlFile([h.join(',')].concat(rows.map(function(r){return r.join(',');})).join('\n'),'diario_pesca.csv','text/csv');
 }
 function esportaJSON(){
-  if(!uscite.length){alert('Nessuna uscita.');return;}
+  if(!uscite.length&&(typeof tracciati==='undefined'||!tracciati.length)){alert('Nessun dato da esportare.');return;}
   var ua=navigator.userAgent;
   var dev='Desktop';
   if(/iPhone/i.test(ua))dev='iPhone';
@@ -1811,7 +1930,13 @@ function esportaJSON(){
   var mm=String(oggi.getMonth()+1).padStart(2,'0');
   var aaaa=oggi.getFullYear();
   var nome='diario_pesca_'+dev+'_'+gg+'-'+mm+'-'+aaaa+'.json';
-  dlFile(JSON.stringify(uscite,null,2),nome,'application/json');
+  var payload={
+    _format:'fd-v2',
+    _versione:'4.3.38',
+    uscite:uscite,
+    tracciati:typeof tracciati!=='undefined'?tracciati:[]
+  };
+  dlFile(JSON.stringify(payload,null,2),nome,'application/json');
 }
 function dlFile(c,n,t){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
@@ -1931,29 +2056,15 @@ function oracleRenderStorico() {
 function buildStoricoUscite() {
   if (!uscite || uscite.length === 0) return '\n\nSTORICO USCITE: Nessuna uscita registrata.';
   var testo = '\n\nSTORICO USCITE REALI (' + uscite.length + ' uscite):\n';
-  var usciteOrd = uscite.slice().sort(function(a,b){ return (a.data||'').localeCompare(b.data||''); });
-  usciteOrd.forEach(function(u) {
-    var m = u.meteo || {};
-    var marea  = u.marea  || m.marea  || '';
-    var luna   = u.luna   || m.luna   || '';
-    var vento  = u.vento  || m.vento_vel || '';
-    var cielo  = u.cielo  || m.cielo  || '';
-    var tAcqua = u.temp_acqua || m.temp_acqua || '';
-    var catAll = (u.catture||[]).filter(function(c){ return c && (c.specie||c.esca||c.peso); });
-    var spigole = catAll.filter(function(c){ return !c.specie || c.specie.toLowerCase().indexOf('spigola')!==-1 || c.specie.toLowerCase().indexOf('branzino')!==-1; });
-    var escheSet = {};
-    catAll.forEach(function(c){
-      var k = [c.esca, c.esca_marca?c.esca_marca.trim():'', c.esca_colore, c.esca_taglia].filter(Boolean).join(' ');
-      if(k) escheSet[k] = true;
-    });
-    var esche = Object.keys(escheSet).join('; ');
-    testo += '- '+(u.data||'')+' | '+(u.zona||'')+' | '+(u.spot||'')+' | Marea: '+marea+' | Luna: '+luna+' | Vento: '+vento+'km/h | Cielo: '+cielo+(tAcqua?' | T.acqua: '+tAcqua:'')+' | Spigole: '+spigole.length+(esche?' | Esche: '+esche:'');
+  uscite.slice(-30).forEach(function(u) {
+    var c = (u.catture||[]).length;
+    testo += '- '+(u.data||'')+' | '+(u.spot||'')+' | Marea: '+(u.marea||'')+' | Luna: '+(u.luna||'')+' | Vento: '+(u.vento||'')+'km/h | Cielo: '+(u.cielo||'')+' | Catture: '+c+' spigole';
     if(u.note) testo += ' | Note: '+u.note;
     testo += '\n';
   });
-  var totSpigole = uscite.reduce(function(acc,u){ return acc+(u.catture||[]).filter(function(c){ return !c.specie||c.specie.toLowerCase().indexOf('spigola')!==-1||c.specie.toLowerCase().indexOf('branzino')!==-1; }).length; },0);
-  var prod = uscite.filter(function(u){ return (u.catture||[]).filter(function(c){ return !c.specie||c.specie.toLowerCase().indexOf('spigola')!==-1||c.specie.toLowerCase().indexOf('branzino')!==-1; }).length>0; }).length;
-  testo += 'Riepilogo: '+totSpigole+' spigole in '+uscite.length+' uscite ('+Math.round(prod/uscite.length*100)+'% produttive).';
+  var tot  = uscite.reduce(function(acc,u){ return acc+(u.catture||[]).length; },0);
+  var prod = uscite.filter(function(u){ return (u.catture||[]).length>0; }).length;
+  testo += 'Riepilogo: '+tot+' spigole in '+uscite.length+' uscite ('+Math.round(prod/uscite.length*100)+'% produttive).';
   return testo;
 }
 
@@ -2029,6 +2140,399 @@ window.addEventListener('beforeunload', function() {
 oracleInit();
 // ===== FINE ORACLE v2.0 =====
 
+</script>
+
+<!-- ===== FAB TRACCIATO GPS + MODAL ===== -->
+<div id="fab-etichetta"></div>
+<div id="fab-tracciato" onclick="trkFabClick()" title="Tracciato GPS">🛰</div>
+
+<div id="trk-modal" onclick="trkModalOutsideClick(event)">
+  <div id="trk-modal-card">
+    <div id="trk-modal-icon"></div>
+    <div id="trk-modal-title"></div>
+    <div id="trk-modal-body"></div>
+    <div id="trk-modal-actions">
+      <div class="btn" onclick="trkModalClose()">Annulla</div>
+      <div class="btn btn-primary" id="trk-modal-confirm" onclick="trkModalConfirm()">Conferma</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== TRACCIATO GPS =====
+var trk={
+  attivo:false,
+  punti:[],
+  idCorrente:null,
+  tInizio:null,
+  watchId:null,
+  wakeLock:null,
+  timerUI:null,
+  timerBackup:null,
+  azionePending:null
+};
+var tracciati=[];
+var TRK_STORAGE='pesca_tracciati';
+var TRK_BACKUP='pesca_tracciato_in_corso';
+
+function trkInitStorage(){
+  try{var r=localStorage.getItem(TRK_STORAGE);if(r)tracciati=JSON.parse(r);}catch(e){tracciati=[];}
+  // recupero backup in caso di crash
+  try{
+    var b=localStorage.getItem(TRK_BACKUP);
+    if(b){
+      var bk=JSON.parse(b);
+      if(bk&&bk.punti&&bk.punti.length>0){
+        var recupera=confirm('🛰 Tracciato interrotto recuperato\n\n'+bk.punti.length+' punti registrati il '+bk.data_inizio+'\nDurata: '+Math.round((bk.punti[bk.punti.length-1].t-bk.punti[0].t)/60000)+' min\n\nSalvarlo nello storico?');
+        if(recupera){
+          var t={
+            id:bk.id||Date.now(),
+            data_inizio:bk.data_inizio,
+            data_fine:new Date(bk.punti[bk.punti.length-1].t).toISOString(),
+            punti:bk.punti,
+            uscita_id:null,
+            note:'Tracciato recuperato da sessione interrotta'
+          };
+          tracciati.push(t);
+          trkSaveTracciati();
+        }
+        localStorage.removeItem(TRK_BACKUP);
+      }
+    }
+  }catch(e){}
+}
+
+function trkSaveTracciati(){
+  try{localStorage.setItem(TRK_STORAGE,JSON.stringify(tracciati));}
+  catch(e){alert('⚠️ Spazio browser pieno — tracciato non salvato.\nEsporta i dati in JSON per liberare spazio.');}
+}
+
+function trkBackupInCorso(){
+  try{
+    if(!trk.attivo)return;
+    var bk={id:trk.idCorrente,data_inizio:new Date(trk.tInizio).toISOString(),punti:trk.punti};
+    localStorage.setItem(TRK_BACKUP,JSON.stringify(bk));
+  }catch(e){}
+}
+
+// Distanza Haversine in metri tra due punti lat/lon
+function trkDistMetri(p1,p2){
+  var R=6371000;
+  var toRad=function(d){return d*Math.PI/180;};
+  var dLat=toRad(p2.lat-p1.lat);
+  var dLon=toRad(p2.lon-p1.lon);
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+        Math.cos(toRad(p1.lat))*Math.cos(toRad(p2.lat))*
+        Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+function trkCalcolaKmCorrente(){
+  if(trk.punti.length<2)return 0;
+  var tot=0;
+  for(var i=1;i<trk.punti.length;i++){
+    tot+=trkDistMetri(trk.punti[i-1],trk.punti[i]);
+  }
+  return tot/1000;
+}
+
+function trkAggiornaUI(){
+  var fab=document.getElementById('fab-tracciato');
+  var et=document.getElementById('fab-etichetta');
+  if(!fab||!et)return;
+  if(trk.attivo){
+    fab.classList.add('attivo');
+    fab.textContent='⏹';
+    var mmss=Math.floor((Date.now()-trk.tInizio)/1000);
+    var mm=Math.floor(mmss/60);
+    var ss=mmss%60;
+    var km=trkCalcolaKmCorrente().toFixed(2);
+    et.textContent='🛰 '+trk.punti.length+' pt · '+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')+' · '+km+' km';
+    et.classList.add('visible');
+  } else {
+    fab.classList.remove('attivo');
+    fab.textContent='🛰';
+    et.classList.remove('visible');
+  }
+}
+
+function trkFabClick(){
+  if(trk.attivo){
+    trkModalShow({
+      icon:'⏹',
+      title:'Fermare il tracciato?',
+      body:trk.punti.length+' punti · '+Math.floor((Date.now()-trk.tInizio)/60000)+' min · '+trkCalcolaKmCorrente().toFixed(2)+' km',
+      confirmText:'Sì, ferma',
+      azione:'stop'
+    });
+  } else {
+    trkModalShow({
+      icon:'🛰',
+      title:'Avviare tracciato GPS?',
+      body:'Il telefono registrerà la tua posizione ogni 30 secondi fino allo stop. Tieni lo schermo acceso per la registrazione continua.',
+      confirmText:'Sì, avvia',
+      azione:'start'
+    });
+  }
+}
+
+function trkModalShow(opts){
+  document.getElementById('trk-modal-icon').textContent=opts.icon;
+  document.getElementById('trk-modal-title').textContent=opts.title;
+  document.getElementById('trk-modal-body').textContent=opts.body;
+  document.getElementById('trk-modal-confirm').textContent=opts.confirmText;
+  trk.azionePending=opts.azione;
+  document.getElementById('trk-modal').classList.add('visible');
+}
+function trkModalClose(){
+  document.getElementById('trk-modal').classList.remove('visible');
+  trk.azionePending=null;
+}
+function trkModalOutsideClick(e){
+  if(e.target.id==='trk-modal')trkModalClose();
+}
+function trkModalConfirm(){
+  var a=trk.azionePending;
+  trkModalClose();
+  if(a==='start')trkStart();
+  else if(a==='stop')trkStop();
+}
+
+function trkStart(){
+  if(!navigator.geolocation){alert('⚠️ GPS non supportato da questo browser.');return;}
+  trk.attivo=true;
+  trk.punti=[];
+  trk.idCorrente=Date.now();
+  trk.tInizio=Date.now();
+
+  // Wake Lock per tenere schermo acceso
+  if('wakeLock' in navigator){
+    navigator.wakeLock.request('screen').then(function(lock){
+      trk.wakeLock=lock;
+      lock.addEventListener('release',function(){trk.wakeLock=null;});
+    }).catch(function(){});
+  }
+
+  // Primo rilevamento immediato
+  navigator.geolocation.getCurrentPosition(function(pos){
+    trk.punti.push({lat:pos.coords.latitude,lon:pos.coords.longitude,t:Date.now()});
+    trkAggiornaUI();
+  },function(){},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+
+  // watchPosition per aggiornamenti continui (il sistema decide la frequenza,
+  // ma noi registriamo solo ogni 30s)
+  var ultimoSalvato=0;
+  trk.watchId=navigator.geolocation.watchPosition(function(pos){
+    var ora=Date.now();
+    if(ora-ultimoSalvato>=30000){
+      trk.punti.push({lat:pos.coords.latitude,lon:pos.coords.longitude,t:ora});
+      ultimoSalvato=ora;
+      trkAggiornaUI();
+    }
+  },function(err){
+    console.warn('GPS errore tracciato:',err);
+  },{enableHighAccuracy:true,maximumAge:0});
+
+  // UI live ogni secondo
+  trk.timerUI=setInterval(trkAggiornaUI,1000);
+  // Backup ogni minuto
+  trk.timerBackup=setInterval(trkBackupInCorso,60000);
+
+  trkAggiornaUI();
+}
+
+function trkStop(){
+  if(!trk.attivo)return;
+  if(trk.watchId!==null){navigator.geolocation.clearWatch(trk.watchId);trk.watchId=null;}
+  if(trk.timerUI){clearInterval(trk.timerUI);trk.timerUI=null;}
+  if(trk.timerBackup){clearInterval(trk.timerBackup);trk.timerBackup=null;}
+  if(trk.wakeLock){trk.wakeLock.release();trk.wakeLock=null;}
+
+  if(trk.punti.length>=2){
+    var t={
+      id:trk.idCorrente,
+      data_inizio:new Date(trk.tInizio).toISOString(),
+      data_fine:new Date().toISOString(),
+      punti:trk.punti.slice(),
+      uscita_id:null,
+      note:''
+    };
+    tracciati.push(t);
+    trkSaveTracciati();
+  } else {
+    alert('⚠️ Tracciato troppo breve ('+trk.punti.length+' punti) — non salvato.');
+  }
+
+  try{localStorage.removeItem(TRK_BACKUP);}catch(e){}
+
+  trk.attivo=false;
+  trk.punti=[];
+  trk.idCorrente=null;
+  trk.tInizio=null;
+  trkAggiornaUI();
+
+  // Se Storico è aperto, aggiorna la lista tracciati
+  if(document.getElementById('panel-storico').classList.contains('active')){
+    trkRenderLista();
+  }
+}
+
+// Calcolo metriche avanzate per un tracciato salvato
+function trkMetriche(t){
+  var punti=t.punti||[];
+  if(punti.length<2)return {km:0,durata_min:0,t_movimento_min:0,t_fermo_min:0,n_soste:0};
+  var km=0,tMov=0,tFer=0,soste=[];
+  var sostaCorrente=null;
+  for(var i=1;i<punti.length;i++){
+    var p1=punti[i-1],p2=punti[i];
+    var d=trkDistMetri(p1,p2);
+    var dt=(p2.t-p1.t)/1000;
+    km+=d/1000;
+    var velKmh=dt>0?(d/dt)*3.6:0;
+    if(velKmh<2){
+      tFer+=dt;
+      if(!sostaCorrente){sostaCorrente={lat:p2.lat,lon:p2.lon,tInizio:p1.t,tFine:p2.t};}
+      else{sostaCorrente.tFine=p2.t;sostaCorrente.lat=(sostaCorrente.lat+p2.lat)/2;sostaCorrente.lon=(sostaCorrente.lon+p2.lon)/2;}
+    } else {
+      tMov+=dt;
+      if(sostaCorrente){
+        if((sostaCorrente.tFine-sostaCorrente.tInizio)/60000>=5)soste.push(sostaCorrente);
+        sostaCorrente=null;
+      }
+    }
+  }
+  if(sostaCorrente&&(sostaCorrente.tFine-sostaCorrente.tInizio)/60000>=5)soste.push(sostaCorrente);
+  var durTot=(punti[punti.length-1].t-punti[0].t)/1000;
+  return {
+    km:km,
+    durata_min:durTot/60,
+    t_movimento_min:tMov/60,
+    t_fermo_min:tFer/60,
+    n_soste:soste.length,
+    soste:soste
+  };
+}
+
+function trkFmtOra(isoStr){
+  try{
+    var d=new Date(isoStr);
+    return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }catch(e){return '';}
+}
+function trkFmtData(isoStr){
+  try{
+    var d=new Date(isoStr);
+    return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+  }catch(e){return '';}
+}
+function trkFmtDurata(min){
+  var h=Math.floor(min/60);
+  var m=Math.round(min%60);
+  return h>0?(h+'h '+m+'m'):(m+'m');
+}
+
+function trkRenderLista(){
+  var cont=document.getElementById('trk-lista');
+  if(!cont)return;
+  if(!tracciati.length){
+    cont.innerHTML='<div class="empty" style="padding:1rem">Nessun tracciato registrato. Premi il pulsante 🛰 in basso a destra per iniziare.</div>';
+    return;
+  }
+  var ordinati=tracciati.slice().sort(function(a,b){return (b.data_inizio||'').localeCompare(a.data_inizio||'');});
+  cont.innerHTML=ordinati.map(function(t){
+    var m=trkMetriche(t);
+    var dataStr=trkFmtData(t.data_inizio);
+    var oraStr=trkFmtOra(t.data_inizio)+'–'+trkFmtOra(t.data_fine);
+    // stato associazione
+    var assocHtml='';
+    if(t.uscita_id){
+      var u=uscite.find(function(x){return x.id===t.uscita_id;});
+      if(u){
+        assocHtml='<div style="font-size:12px;color:#2d7a4a;margin-top:6px">🔗 Associato a: '+fmtData(u.data)+(u.spot?' — '+u.spot:'')+'</div>';
+      } else {
+        assocHtml='<div style="font-size:12px;color:#c0392b;margin-top:6px">⚠️ Uscita associata non più esistente</div>';
+      }
+    }
+    // dropdown associazione (uscite vicine ± 1 giorno)
+    var dataInizio=t.data_inizio?t.data_inizio.substring(0,10):'';
+    var candidate=uscite.filter(function(u){
+      if(!u.data||!dataInizio)return false;
+      var d1=new Date(u.data+'T00:00:00').getTime();
+      var d2=new Date(dataInizio+'T00:00:00').getTime();
+      return Math.abs(d1-d2)<=86400000*1;
+    });
+    var options='<option value="">— scegli uscita —</option>';
+    candidate.forEach(function(u){
+      var sel=u.id===t.uscita_id?' selected':'';
+      options+='<option value="'+u.id+'"'+sel+'>'+fmtData(u.data)+(u.ora?' '+u.ora:'')+(u.spot?' — '+u.spot:'')+(u.zona?' ('+u.zona+')':'')+'</option>';
+    });
+    return '<div class="uscita-card" style="border-left-color:#e07b39">'+
+      '<div class="uscita-header">'+
+        '<div>'+
+          '<div class="uscita-date">🛰 '+dataStr+'</div>'+
+          '<div class="uscita-spot">'+oraStr+' · '+trkFmtDurata(m.durata_min)+' · '+m.km.toFixed(2)+' km</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;align-items:center">'+
+          '<span style="font-size:12px;color:var(--muted)">'+(t.punti||[]).length+' pt</span>'+
+          '<div class="btn btn-sm btn-danger" onclick="trkElimina('+t.id+')">Elimina</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+
+        '<span class="badge">🏃 '+trkFmtDurata(m.t_movimento_min)+' in movimento</span>'+
+        '<span class="badge">⏸ '+trkFmtDurata(m.t_fermo_min)+' fermo</span>'+
+        '<span class="badge">📍 '+m.n_soste+' soste</span>'+
+      '</div>'+
+      assocHtml+
+      '<div style="margin-top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+        '<span style="font-size:12px;color:var(--muted)">Associa a uscita:</span>'+
+        '<div class="sel-wrap" style="flex:1;min-width:160px"><select onchange="trkAssocia('+t.id+',this.value)" style="padding:6px 24px 6px 8px;font-size:12px">'+options+'</select></div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function trkAssocia(trackId,uscitaId){
+  var t=tracciati.find(function(x){return x.id===trackId;});
+  if(!t)return;
+  t.uscita_id=uscitaId?parseInt(uscitaId):null;
+  trkSaveTracciati();
+  trkRenderLista();
+  if(document.getElementById('panel-storico').classList.contains('active'))renderStorico();
+}
+
+function trkElimina(id){
+  if(!confirm('Eliminare questo tracciato? Operazione irreversibile.'))return;
+  tracciati=tracciati.filter(function(x){return x.id!==id;});
+  trkSaveTracciati();
+  trkRenderLista();
+  if(document.getElementById('panel-storico').classList.contains('active'))renderStorico();
+}
+
+// Ripristina Wake Lock quando la pagina torna visibile (iOS sospende in background)
+document.addEventListener('visibilitychange',function(){
+  if(!trk.attivo)return;
+  if(document.visibilityState==='visible'&&!trk.wakeLock&&'wakeLock' in navigator){
+    navigator.wakeLock.request('screen').then(function(lock){
+      trk.wakeLock=lock;
+      lock.addEventListener('release',function(){trk.wakeLock=null;});
+    }).catch(function(){});
+  }
+});
+
+function trkToggleSezione(){
+  var body=document.getElementById('trk-sezione-body');
+  var chev=document.getElementById('trk-sezione-chevron');
+  if(!body)return;
+  var aperto=body.style.display!=='none';
+  body.style.display=aperto?'none':'block';
+  if(chev)chev.textContent=aperto?'▼':'▲';
+  if(!aperto)trkRenderLista();
+}
+
+// Inizializza all'avvio
+trkInitStorage();
+trkAggiornaUI();
+// ===== FINE TRACCIATO GPS =====
 </script>
 </body>
 </html>
