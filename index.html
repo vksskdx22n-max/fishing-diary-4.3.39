@@ -126,6 +126,35 @@ select{width:100%;padding:9px 30px 9px 10px;border:1px solid var(--border);borde
 }
 #fab-etichetta.visible{display:block}
 
+/* ===== FAB SEGNA CATTURA (4.3.41) ===== */
+#fab-cattura{
+  position:fixed;right:20px;bottom:100px;z-index:999;
+  width:56px;height:56px;border-radius:50%;
+  background:#e07b39;color:#fff;
+  display:none;align-items:center;justify-content:center;
+  font-size:24px;box-shadow:0 4px 14px rgba(224,123,57,.45);
+  cursor:pointer;user-select:none;touch-action:manipulation;
+  border:3px solid #fff;
+  transition:transform .15s;
+}
+#fab-cattura.mostrato{display:flex}
+#fab-cattura:active{transform:scale(.92)}
+
+/* Toast feedback cattura */
+#cattura-toast{
+  position:fixed;left:50%;bottom:180px;transform:translateX(-50%) translateY(20px);
+  z-index:3000;
+  background:rgba(26,42,58,.95);color:#fff;
+  padding:12px 20px;border-radius:24px;
+  font-size:14px;font-weight:600;
+  box-shadow:0 4px 20px rgba(0,0,0,.35);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;
+  white-space:nowrap;
+}
+#cattura-toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+#cattura-toast.warn{background:rgba(192,57,43,.95)}
+
 /* Modal conferma tracciato */
 #trk-modal{
   display:none;position:fixed;inset:0;z-index:2000;
@@ -263,7 +292,7 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
     <div>
       <div class="header-title">🎣 Fishing Diary</div>
       <div style="font-size:16px;font-weight:600;color:#fff;opacity:.9;margin-top:4px;text-shadow:0 1px 3px rgba(0,0,0,.4);padding-left:1.6em">Laguna di Venezia</div>
-      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.40 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
+      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.41 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
       <div class="header-info" style="margin-top:8px">I dati vengono salvati nel browser. <b>Esporta</b> regolarmente in JSON/CSV per non perderli.</div>
     </div>
     <div class="header-pescatore">
@@ -1379,6 +1408,7 @@ function renderStorico(){
     var trkMetricheHtml='';
     if(trkAssociato){
       var mTrk=trkMetriche(trkAssociato);
+      var nSpotCat=Array.isArray(trkAssociato.spot_catture)?trkAssociato.spot_catture.length:0;
       trkBadgeHtml='<span class="badge" style="background:#fff3e8;color:#e07b39">🛰 '+mTrk.km.toFixed(2)+' km</span> ';
       trkMetricheHtml=
         '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f4f8">'+
@@ -1389,6 +1419,7 @@ function renderStorico(){
           '<span class="badge">🏃 '+trkFmtDurata(mTrk.t_movimento_min)+' in movimento</span>'+
           '<span class="badge">⏸ '+trkFmtDurata(mTrk.t_fermo_min)+' fermo</span>'+
           '<span class="badge">📍 '+mTrk.n_soste+' soste</span>'+
+          (nSpotCat>0?'<span class="badge" style="background:#fff3e8;color:#e07b39">🪝 '+nSpotCat+' spot cattura GPS</span>':'')+
           '<span class="badge">🎯 '+(mTrk.km>0?(nCatture/mTrk.km).toFixed(2):'0')+' cat./km</span>'+
         '</div>'+
         '</div>';
@@ -2146,6 +2177,8 @@ oracleInit();
 <!-- ===== FAB TRACCIATO GPS + MODAL ===== -->
 <div id="fab-etichetta"></div>
 <div id="fab-tracciato" onclick="trkFabClick()" title="Tracciato GPS">🛰</div>
+<div id="fab-cattura" onclick="catFabClick()" title="Segna cattura">🪝</div>
+<div id="cattura-toast"></div>
 
 <div id="trk-modal" onclick="trkModalOutsideClick(event)">
   <div id="trk-modal-card">
@@ -2164,13 +2197,15 @@ oracleInit();
 var trk={
   attivo:false,
   punti:[],
+  spot_catture:[],
   idCorrente:null,
   tInizio:null,
   watchId:null,
   wakeLock:null,
   timerUI:null,
   timerBackup:null,
-  azionePending:null
+  azionePending:null,
+  ultimoTapCattura:0
 };
 var tracciati=[];
 var TRK_STORAGE='pesca_tracciati';
@@ -2191,6 +2226,7 @@ function trkInitStorage(){
             data_inizio:bk.data_inizio,
             data_fine:new Date(bk.punti[bk.punti.length-1].t).toISOString(),
             punti:bk.punti,
+            spot_catture:Array.isArray(bk.spot_catture)?bk.spot_catture:[],
             uscita_id:null,
             note:'Tracciato recuperato da sessione interrotta'
           };
@@ -2211,7 +2247,7 @@ function trkSaveTracciati(){
 function trkBackupInCorso(){
   try{
     if(!trk.attivo)return;
-    var bk={id:trk.idCorrente,data_inizio:new Date(trk.tInizio).toISOString(),punti:trk.punti};
+    var bk={id:trk.idCorrente,data_inizio:new Date(trk.tInizio).toISOString(),punti:trk.punti,spot_catture:trk.spot_catture};
     localStorage.setItem(TRK_BACKUP,JSON.stringify(bk));
   }catch(e){}
 }
@@ -2240,6 +2276,7 @@ function trkCalcolaKmCorrente(){
 function trkAggiornaUI(){
   var fab=document.getElementById('fab-tracciato');
   var et=document.getElementById('fab-etichetta');
+  var fabCat=document.getElementById('fab-cattura');
   if(!fab||!et)return;
   if(trk.attivo){
     fab.classList.add('attivo');
@@ -2250,10 +2287,12 @@ function trkAggiornaUI(){
     var km=trkCalcolaKmCorrente().toFixed(2);
     et.textContent='🛰 '+trk.punti.length+' pt · '+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')+' · '+km+' km';
     et.classList.add('visible');
+    if(fabCat)fabCat.classList.add('mostrato');
   } else {
     fab.classList.remove('attivo');
     fab.textContent='🛰';
     et.classList.remove('visible');
+    if(fabCat)fabCat.classList.remove('mostrato');
   }
 }
 
@@ -2297,12 +2336,14 @@ function trkModalConfirm(){
   trkModalClose();
   if(a==='start')trkStart();
   else if(a==='stop')trkStop();
+  else if(a==='cattura')catSalva();
 }
 
 function trkStart(){
   if(!navigator.geolocation){alert('⚠️ GPS non supportato da questo browser.');return;}
   trk.attivo=true;
   trk.punti=[];
+  trk.spot_catture=[];
   trk.idCorrente=Date.now();
   trk.tInizio=Date.now();
 
@@ -2355,6 +2396,7 @@ function trkStop(){
       data_inizio:new Date(trk.tInizio).toISOString(),
       data_fine:new Date().toISOString(),
       punti:trk.punti.slice(),
+      spot_catture:trk.spot_catture.slice(),
       uscita_id:null,
       note:''
     };
@@ -2368,6 +2410,7 @@ function trkStop(){
 
   trk.attivo=false;
   trk.punti=[];
+  trk.spot_catture=[];
   trk.idCorrente=null;
   trk.tInizio=null;
   trkAggiornaUI();
@@ -2485,6 +2528,7 @@ function trkRenderLista(){
         '<span class="badge">🏃 '+trkFmtDurata(m.t_movimento_min)+' in movimento</span>'+
         '<span class="badge">⏸ '+trkFmtDurata(m.t_fermo_min)+' fermo</span>'+
         '<span class="badge">📍 '+m.n_soste+' soste</span>'+
+        (Array.isArray(t.spot_catture)&&t.spot_catture.length>0?'<span class="badge" style="background:#fff3e8;color:#e07b39">🪝 '+t.spot_catture.length+' spot cattura</span>':'')+
       '</div>'+
       assocHtml+
       '<div style="margin-top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
@@ -2557,6 +2601,54 @@ function trkRipristinaStatoSezione(){
 // Inizializza all'avvio
 trkInitStorage();
 trkAggiornaUI();
+
+// ===== SEGNA CATTURA (FAB cattura, 4.3.41) =====
+function catFabClick(){
+  if(!trk.attivo)return; // safety
+  // Debounce: ignora tap ravvicinati (< 1 sec)
+  var ora=Date.now();
+  if(ora-trk.ultimoTapCattura<1000)return;
+  trk.ultimoTapCattura=ora;
+  // Apro modal conferma (riuso stesso modal del tracciato)
+  trkModalShow({
+    icon:'🪝',
+    title:'Segnare cattura qui?',
+    body:'Verrà registrata la posizione GPS corrente con timestamp.',
+    confirmText:'Sì, segna',
+    azione:'cattura'
+  });
+}
+
+function catSalva(){
+  if(!trk.attivo)return;
+  if(!navigator.geolocation){catToast('⚠️ GPS non supportato',true);return;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    trk.spot_catture.push({
+      t:Date.now(),
+      lat:pos.coords.latitude,
+      lon:pos.coords.longitude,
+      accuracy:pos.coords.accuracy||null
+    });
+    // Feedback tattile
+    if('vibrate' in navigator){try{navigator.vibrate(50);}catch(e){}}
+    // Backup immediato (così anche se crash non si perde la cattura segnata)
+    trkBackupInCorso();
+    catToast('🪝 Cattura segnata');
+  },function(err){
+    catToast('⚠️ GPS non disponibile',true);
+  },{enableHighAccuracy:true,timeout:8000,maximumAge:2000});
+}
+
+function catToast(msg,isWarn){
+  var el=document.getElementById('cattura-toast');
+  if(!el)return;
+  el.textContent=msg;
+  el.classList.toggle('warn',!!isWarn);
+  el.classList.add('visible');
+  clearTimeout(el._timer);
+  el._timer=setTimeout(function(){el.classList.remove('visible');},2000);
+}
+// ===== FINE SEGNA CATTURA =====
 // ===== FINE TRACCIATO GPS =====
 </script>
 </body>
