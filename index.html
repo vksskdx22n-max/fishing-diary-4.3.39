@@ -263,7 +263,7 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
     <div>
       <div class="header-title">🎣 Fishing Diary</div>
       <div style="font-size:16px;font-weight:600;color:#fff;opacity:.9;margin-top:4px;text-shadow:0 1px 3px rgba(0,0,0,.4);padding-left:1.6em">Laguna di Venezia</div>
-      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.39 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
+      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.40 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
       <div class="header-info" style="margin-top:8px">I dati vengono salvati nel browser. <b>Esporta</b> regolarmente in JSON/CSV per non perderli.</div>
     </div>
     <div class="header-pescatore">
@@ -693,18 +693,19 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
       <div class="btn btn-sm btn-danger" onclick="cancellatutti()">🗑 Reset</div>
     </div>
   </div>
-  <div id="storico-lista"></div>
 
-  <!-- ===== SEZIONE TRACCIATI GPS ===== -->
-  <div class="card" style="margin-top:12px">
+  <!-- ===== SEZIONE TRACCIATI GPS (spostata in cima, sopra elenco uscite) ===== -->
+  <div class="card" style="margin-top:12px;margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="trkToggleSezione()">
-      <div class="section-title" style="margin-bottom:0">🛰 Tracciati GPS</div>
+      <div class="section-title" style="margin-bottom:0">🛰 Tracciati GPS <span id="trk-sezione-count" style="font-weight:400;color:var(--muted)">(0)</span></div>
       <span id="trk-sezione-chevron" style="font-size:13px;color:var(--muted)">▼</span>
     </div>
     <div id="trk-sezione-body" style="display:none;margin-top:12px">
       <div id="trk-lista"></div>
     </div>
   </div>
+
+  <div id="storico-lista"></div>
 </div>
 
 <!-- OVERLAY NOME SPOT (fuori dalla mappa, evita bug Safari iOS con tastiera) -->
@@ -857,7 +858,7 @@ function showPanel(id,el){
   if(id==='mappa'){document.body.classList.add('mappa-active');setTimeout(initMap,100);}
   else{document.body.classList.remove('mappa-active');}
   if(id==='nuova'){populateSpotDropdown();rilevafaseLunare(true);}
-  if(id==='storico'){renderStorico();if(document.getElementById('trk-sezione-body').style.display!=='none')trkRenderLista();}
+  if(id==='storico'){renderStorico();trkRipristinaStatoSezione();}
   if(id==='statistiche')renderStats();
   if(id==='previsione')initKNN();
   if(id==='oracle') oracleCaricaMemoria();
@@ -2433,6 +2434,9 @@ function trkFmtDurata(min){
 
 function trkRenderLista(){
   var cont=document.getElementById('trk-lista');
+  // Aggiorna sempre il contatore nell'header
+  var cnt=document.getElementById('trk-sezione-count');
+  if(cnt)cnt.textContent='('+(tracciati?tracciati.length:0)+')';
   if(!cont)return;
   if(!tracciati.length){
     cont.innerHTML='<div class="empty" style="padding:1rem">Nessun tracciato registrato. Premi il pulsante 🛰 in basso a destra per iniziare.</div>';
@@ -2526,7 +2530,28 @@ function trkToggleSezione(){
   var aperto=body.style.display!=='none';
   body.style.display=aperto?'none':'block';
   if(chev)chev.textContent=aperto?'▼':'▲';
+  // Persistenza stato
+  try{localStorage.setItem('pesca_trk_sezione_aperta',aperto?'0':'1');}catch(e){}
   if(!aperto)trkRenderLista();
+}
+
+// Ripristina stato sezione (aperta/chiusa) + aggiorna contatore al caricamento Storico
+function trkRipristinaStatoSezione(){
+  var body=document.getElementById('trk-sezione-body');
+  var chev=document.getElementById('trk-sezione-chevron');
+  var cnt=document.getElementById('trk-sezione-count');
+  if(cnt)cnt.textContent='('+(tracciati?tracciati.length:0)+')';
+  if(!body)return;
+  var stato='0';
+  try{stato=localStorage.getItem('pesca_trk_sezione_aperta')||'0';}catch(e){}
+  if(stato==='1'){
+    body.style.display='block';
+    if(chev)chev.textContent='▲';
+    trkRenderLista();
+  } else {
+    body.style.display='none';
+    if(chev)chev.textContent='▼';
+  }
 }
 
 // Inizializza all'avvio
