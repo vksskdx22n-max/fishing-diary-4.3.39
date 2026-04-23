@@ -65,13 +65,18 @@ select{width:100%;padding:9px 30px 9px 10px;border:1px solid var(--border);borde
 .stat-card{background:linear-gradient(135deg,var(--blu) 0%,var(--blu2) 100%);border-radius:12px;padding:1rem;text-align:center;color:#fff}
 .stat-num{font-size:26px;font-weight:700}
 .stat-label{font-size:11px;opacity:.75;margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
-#map{height:350px;border-radius:10px;border:1px solid var(--border)}
+#map{height:350px;width:100%;border-radius:10px;border:1px solid var(--border)}
+@media(min-width:768px) and (max-width:1199px){
+  #map{height:450px}
+}
+@media(min-width:1200px){
+  #map{height:550px}
+}
 @media(max-width:600px){
   body.mappa-active .app{display:flex;flex-direction:column;height:100vh;overflow:hidden;padding:0.5rem}
   body.mappa-active .tabs{flex-shrink:0}
   body.mappa-active #panel-mappa{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
   body.mappa-active .header{display:none!important}
-  #map{height:350px}
 }
 .spot-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f4f8}
 .spot-item:last-child{border-bottom:none}
@@ -87,7 +92,6 @@ select{width:100%;padding:9px 30px 9px 10px;border:1px solid var(--border);borde
   .row,.row3{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:1fr 1fr}
   #esca_colore_wrap{grid-template-columns:repeat(3,1fr)!important}
-  #map{min-height:260px}
   .filter-bar{flex-direction:column;align-items:stretch}
   .actions{flex-wrap:wrap}
   .actions .btn{flex:1}
@@ -154,6 +158,39 @@ select{width:100%;padding:9px 30px 9px 10px;border:1px solid var(--border);borde
 }
 #cattura-toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 #cattura-toast.warn{background:rgba(192,57,43,.95)}
+
+/* ===== POPUP TRACCIATO + PIN CATTURA (4.3.42) ===== */
+.fd-track-popup .leaflet-popup-content-wrapper{border-radius:10px;padding:0;overflow:hidden}
+.fd-track-popup .leaflet-popup-content{margin:0;min-width:240px}
+.fd-popup-header{background:#1e3a5f;color:#fff;padding:10px 12px}
+.fd-popup-date{font-size:14px;font-weight:700}
+.fd-popup-stars{color:#f5b301;letter-spacing:1px;font-size:13px;margin-left:6px}
+.fd-popup-spot{font-size:11px;opacity:.9;margin-top:2px}
+.fd-popup-body{padding:10px 12px;background:#fff}
+.fd-popup-catture{background:#fee2e2;border-left:3px solid #dc2626;padding:6px 8px;border-radius:4px;margin-bottom:8px;font-size:12px;color:#7f1d1d}
+.fd-popup-catture.zero{background:#eff6ff;border-left-color:#1e40af;color:#1e3a5f}
+.fd-popup-metrics{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:11px;margin-bottom:6px}
+.fd-popup-metric-label{color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+.fd-popup-metric-val{font-weight:700;color:#1e3a5f}
+.fd-popup-conditions{font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px}
+.fd-popup-actions{display:flex;gap:6px;margin-top:10px}
+.fd-popup-btn{
+  flex:1;padding:7px 8px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;
+  font-size:11px;font-weight:600;color:#1e3a5f;text-align:center;cursor:pointer;
+  text-decoration:none;display:block
+}
+.fd-popup-btn.primary{background:#e07b39;border-color:#e07b39;color:#fff}
+.fd-popup-btn:hover{opacity:.9}
+
+/* Pin cattura GPS custom icon */
+.fd-catch-pin-wrap{background:transparent;border:none}
+.fd-catch-pin{
+  background:#dc2626;color:#fff;border-radius:50%;
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;border:3px solid #fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.35)
+}
 
 /* Modal conferma tracciato */
 #trk-modal{
@@ -292,7 +329,7 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
     <div>
       <div class="header-title">🎣 Fishing Diary</div>
       <div style="font-size:16px;font-weight:600;color:#fff;opacity:.9;margin-top:4px;text-shadow:0 1px 3px rgba(0,0,0,.4);padding-left:1.6em">Laguna di Venezia</div>
-      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.41 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
+      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.44 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
       <div class="header-info" style="margin-top:8px">I dati vengono salvati nel browser. <b>Esporta</b> regolarmente in JSON/CSV per non perderli.</div>
     </div>
     <div class="header-pescatore">
@@ -759,6 +796,67 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
       <div id="tog-batimetria" onclick="toggleWMS('batimetria')" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:#fafcff;color:var(--muted);touch-action:manipulation;user-select:none">📊 Batimetria</div>
     </div>
   </div>
+  <div class="card" style="padding:10px 12px 8px">
+    <div class="section-title" style="margin-bottom:8px">🛰 Tracciati GPS</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div id="tog-tracciati" onclick="trkMapToggle()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:var(--navy,#1e3a5f);color:#fff;touch-action:manipulation;user-select:none">🛰 Tracciati</div>
+      <div id="tog-catture" onclick="catMapToggle()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:#dc2626;color:#fff;touch-action:manipulation;user-select:none">🪝 Catture GPS</div>
+      <div style="font-size:11px;color:var(--muted)" id="trk-map-info">Solo ultimo tracciato visibile</div>
+    </div>
+  </div>
+  <div class="card" style="padding:10px 12px 8px" id="trk-filtri-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="trkFiltriToggle()">
+      <div class="section-title" style="margin-bottom:0">🔍 Filtri tracciati</div>
+      <span id="trk-filtri-chevron" style="font-size:13px;color:var(--muted)">▼</span>
+    </div>
+    <div id="trk-filtri-body" style="display:none;margin-top:10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+        <div>
+          <label style="display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:3px">Periodo</label>
+          <div class="sel-wrap"><select id="trk-f-periodo" onchange="trkMapFiltri()" style="width:100%;padding:7px 24px 7px 8px;font-size:12px">
+            <option value="ultimo">Solo ultimo</option>
+            <option value="7">Ultimi 7 giorni</option>
+            <option value="30">Ultimi 30 giorni</option>
+            <option value="stagione">Stagione corrente</option>
+            <option value="tutti">Tutti</option>
+          </select></div>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:3px">Zona</label>
+          <div class="sel-wrap"><select id="trk-f-zona" onchange="trkMapFiltri()" style="width:100%;padding:7px 24px 7px 8px;font-size:12px">
+            <option value="">Tutte le zone</option>
+            <option>Laguna Nord</option><option>Laguna Centro</option><option>Laguna Sud</option>
+            <option>Canale dei Petroli</option><option>Canale di Malamocco</option>
+            <option>Canale Melison</option><option>Canale Fisolo</option><option>Canale Spignon</option>
+            <option>San Leonardo</option><option>Porto Marghera</option>
+            <option>Punta Sabbioni</option><option>Chioggia</option>
+            <option>Bocca di Lido</option><option>Bocca di Malamocco</option>
+          </select></div>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:3px">Voto min.</label>
+          <div class="sel-wrap"><select id="trk-f-voto" onchange="trkMapFiltri()" style="width:100%;padding:7px 24px 7px 8px;font-size:12px">
+            <option value="0">Tutti</option>
+            <option value="1">★ e oltre</option>
+            <option value="2">★★ e oltre</option>
+            <option value="3">★★★</option>
+          </select></div>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:3px">Catture</label>
+          <div class="sel-wrap"><select id="trk-f-catture" onchange="trkMapFiltri()" style="width:100%;padding:7px 24px 7px 8px;font-size:12px">
+            <option value="">Tutti</option>
+            <option value="con">Solo con catture</option>
+            <option value="senza">Solo cappotti</option>
+          </select></div>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+        <span id="trk-f-count" style="font-size:11px;color:var(--muted)"></span>
+        <div class="btn btn-sm" onclick="trkMapFiltriReset()" style="font-size:11px">↺ Reset</div>
+      </div>
+    </div>
+  </div>
   <div class="card" style="padding:0"><div id="map"></div></div>
   <div id="spot-list-container" class="card">
     <div class="section-title">I tuoi spot salvati</div>
@@ -850,6 +948,9 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
 <script>
 var uscite=[],spots=[],cattureCorrenti=[],ventoDirCorr='',mareaCorr='',lunaCorr='',votoCorr=3;
 var mapInstance=null,spotMarkers=[],newSpotMarker=null;
+// Costanti nomi condivise (usate in Storico, Stats e popup Mappa tracciato)
+var mareaNomi={'inizio_crescente':'↗ Inizio crescente','crescente':'↑ Crescente','fine_crescente':'↑ Fine crescente','inizio_calante':'↘ Inizio calante','calante':'↓ Calante','fine_calante':'↓ Fine calante'};
+var lunaNomi={'nuova':'🌑 Nuova','crescente':'🌒 Crescente','piena':'🌕 Piena','calante':'🌘 Calante'};
 var wmsLayers={canali:null,batimetria:null};
 var wmsActive={canali:false,batimetria:false};
 var WMS_URL='https://cigno.atlantedellalaguna.it/geoserver/wms';
@@ -1293,7 +1394,9 @@ function salvaUltimaEChiudi(){
     cattureCorrenti.push(c);
     renderCattureCorrenti();
   }
-  if(!cattureCorrenti.length){alert('Nessuna cattura da salvare. Seleziona almeno una specie.');return;}
+  if(!cattureCorrenti.length){
+    if(!confirm('Nessuna cattura registrata. Salvare l\'uscita come cappotto (0 catture)?'))return;
+  }
   salvaUscita();
 }
 function salvaUscita(){
@@ -1420,7 +1523,6 @@ function renderStorico(){
           '<span class="badge">⏸ '+trkFmtDurata(mTrk.t_fermo_min)+' fermo</span>'+
           '<span class="badge">📍 '+mTrk.n_soste+' soste</span>'+
           (nSpotCat>0?'<span class="badge" style="background:#fff3e8;color:#e07b39">🪝 '+nSpotCat+' spot cattura GPS</span>':'')+
-          '<span class="badge">🎯 '+(mTrk.km>0?(nCatture/mTrk.km).toFixed(2):'0')+' cat./km</span>'+
         '</div>'+
         '</div>';
     }
@@ -1474,7 +1576,7 @@ function renderStorico(){
       trkMetricheHtml+
       '</div>';
 
-    return '<div class="uscita-card" style="cursor:pointer" onclick="toggleDetUscita('+u.id+',event)">'+
+    return '<div class="uscita-card" data-uscita-id="'+u.id+'" style="cursor:pointer" onclick="toggleDetUscita('+u.id+',event)">'+
       '<div class="uscita-header">'+
         '<div>'+
           '<div class="uscita-date">'+fmtData(u.data)+(u.ora?' · '+u.ora:'')+'</div>'+
@@ -1550,11 +1652,16 @@ function ricentraMappa(centro, zoom){
 }
 
 function initMap(){
-  if(mapInstance){mapInstance.invalidateSize();renderSpotMappa();return;}
+  if(mapInstance){mapInstance.invalidateSize();renderSpotMappa();trkMapRender();return;}
   mapInstance=L.map('map').setView([45.4408,12.3155],12);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri © OpenStreetMap',maxZoom:19}).addTo(mapInstance);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'',maxZoom:19,opacity:0.45}).addTo(mapInstance);
   renderSpotMappa();
+  trkMapBoundsFatto=false; // reset così al primo render fa il fit bounds
+  trkMapRender();
+  // aggiorno testo info toggle in base ai dati
+  var info=document.getElementById('trk-map-info');
+  if(info)info.textContent=tracciati.length?'Solo ultimo tracciato visibile':'Nessun tracciato registrato';
   mapInstance.on('click',function(e){
     if(newSpotMarker)mapInstance.removeLayer(newSpotMarker);
     newSpotMarker=L.marker(e.latlng,{draggable:true}).addTo(mapInstance);
@@ -1639,6 +1746,328 @@ function zoomSpot(i){
   mapInstance.setView([parseFloat(s.lat),parseFloat(s.lon)],16);
   if(spotMarkers[i])spotMarkers[i].openPopup();
 }
+
+// ===== TRACCIATI SU MAPPA (4.3.42a — step 1: solo polyline) =====
+var trkMapLayers=[]; // array di polyline Leaflet
+var trkMapVisibile=true; // toggle stato (default: mostrato)
+
+function trkMapGetUltimoId(){
+  if(!tracciati||!tracciati.length)return null;
+  var ord=tracciati.slice().sort(function(a,b){return (b.data_inizio||'').localeCompare(a.data_inizio||'');});
+  return ord[0].id;
+}
+
+// Costruisce popup HTML per un tracciato
+function trkMapBuildPopup(t){
+  var uscAssoc=t.uscita_id?uscite.find(function(u){return u.id===t.uscita_id;}):null;
+  var nCatture=uscAssoc&&uscAssoc.catture?uscAssoc.catture.length:0;
+  var hasCatture=nCatture>0;
+
+  // Header: data + stelle + spot
+  var dataStr=trkFmtData(t.data_inizio);
+  var oraStr=trkFmtOra(t.data_inizio)+'–'+trkFmtOra(t.data_fine);
+  var voto=uscAssoc?parseInt(uscAssoc.voto||0):0;
+  var starsHtml='';
+  if(voto>0){
+    for(var i=0;i<3;i++) starsHtml += i<voto ? '★' : '☆';
+  }
+  var spotStr=uscAssoc?(uscAssoc.spot||uscAssoc.zona||'—'):'Tracciato non associato';
+  var zonaStr=uscAssoc&&uscAssoc.zona?uscAssoc.zona:'';
+
+  // Sezione catture
+  var catturaHtml;
+  if(hasCatture){
+    var listaCat=uscAssoc.catture.map(function(c){
+      var info=[c.peso,c.lunghezza,c.esca].filter(Boolean).join(' · ');
+      return '<div>• <b>'+c.specie+'</b>'+(info?' <span style="color:#991b1b">'+info+'</span>':'')+'</div>';
+    }).join('');
+    catturaHtml='<div class="fd-popup-catture"><b>🐟 '+nCatture+' cattur'+(nCatture===1?'a':'e')+'</b>'+listaCat+'</div>';
+  } else if(uscAssoc){
+    catturaHtml='<div class="fd-popup-catture zero"><b>Cappotto</b> — nessuna cattura registrata</div>';
+  } else {
+    catturaHtml='<div class="fd-popup-catture zero">Tracciato non ancora associato a un\'uscita</div>';
+  }
+
+  // Metriche tracciato
+  var m=trkMetriche(t);
+  var nSpotCat=Array.isArray(t.spot_catture)?t.spot_catture.length:0;
+  var metricsHtml=
+    '<div class="fd-popup-metrics">'+
+      '<div><div class="fd-popup-metric-label">Distanza</div><div class="fd-popup-metric-val">'+m.km.toFixed(2)+' km</div></div>'+
+      '<div><div class="fd-popup-metric-label">Durata</div><div class="fd-popup-metric-val">'+trkFmtDurata(m.durata_min)+'</div></div>'+
+      '<div><div class="fd-popup-metric-label">In movimento</div><div class="fd-popup-metric-val">'+trkFmtDurata(m.t_movimento_min)+'</div></div>'+
+      '<div><div class="fd-popup-metric-label">Fermo</div><div class="fd-popup-metric-val">'+trkFmtDurata(m.t_fermo_min)+' ('+m.n_soste+' soste)</div></div>'+
+      (nSpotCat>0?'<div><div class="fd-popup-metric-label">Spot GPS</div><div class="fd-popup-metric-val" style="color:#e07b39">🪝 '+nSpotCat+'</div></div>':'')+
+    '</div>';
+
+  // Condizioni (da uscita associata)
+  var condHtml='';
+  if(uscAssoc){
+    var ventoStr=uscAssoc.meteo&&uscAssoc.meteo.vento_vel?(uscAssoc.meteo.vento_vel+(uscAssoc.meteo.vento_dir?' '+uscAssoc.meteo.vento_dir:'')):'';
+    var mareaStr=uscAssoc.meteo&&uscAssoc.meteo.marea?(mareaNomi[uscAssoc.meteo.marea]||uscAssoc.meteo.marea):'';
+    var lunaStr=uscAssoc.meteo&&uscAssoc.meteo.luna?(lunaNomi[uscAssoc.meteo.luna]||uscAssoc.meteo.luna):'';
+    var parti=[];
+    if(ventoStr)parti.push('💨 '+ventoStr);
+    if(mareaStr)parti.push('🌊 '+mareaStr);
+    if(lunaStr)parti.push('🌙 '+lunaStr);
+    if(parti.length)condHtml='<div class="fd-popup-conditions">'+parti.join(' · ')+'</div>';
+  }
+
+  // Bottoni azione
+  var actionsHtml=
+    '<div class="fd-popup-actions">'+
+      '<div class="fd-popup-btn primary" onclick="trkMapEsplora('+t.id+')">🎯 Esplora</div>'+
+      (uscAssoc?'<div class="fd-popup-btn" onclick="trkMapApriStorico('+uscAssoc.id+')">📖 Storico</div>':'')+
+    '</div>';
+
+  return '<div class="fd-popup-header">'+
+           '<div class="fd-popup-date">📅 '+dataStr+(starsHtml?'<span class="fd-popup-stars">'+starsHtml+'</span>':'')+'</div>'+
+           '<div class="fd-popup-spot">'+oraStr+' · '+spotStr+(zonaStr&&zonaStr!==spotStr?' — '+zonaStr:'')+'</div>'+
+         '</div>'+
+         '<div class="fd-popup-body">'+
+           catturaHtml+
+           metricsHtml+
+           condHtml+
+           actionsHtml+
+         '</div>';
+}
+
+function trkMapRender(){
+  if(!mapInstance)return;
+  // pulisco polyline esistenti
+  trkMapLayers.forEach(function(l){mapInstance.removeLayer(l);});
+  trkMapLayers=[];
+  catMapLayers.forEach(function(l){mapInstance.removeLayer(l);});
+  catMapLayers=[];
+  if(!tracciati||!tracciati.length){
+    aggiornaInfoTrkMap();
+    return;
+  }
+
+  // Applico filtri
+  var daMostrare=trkMapApplicaFiltri(tracciati);
+
+  daMostrare.forEach(function(t){
+    if(!t.punti||t.punti.length<2)return;
+    var uscAssoc=t.uscita_id?uscite.find(function(u){return u.id===t.uscita_id;}):null;
+    var nCatture=uscAssoc&&uscAssoc.catture?uscAssoc.catture.length:0;
+    var hasCatture=nCatture>0;
+
+    // POLYLINE (solo se toggle tracciati attivo)
+    if(trkMapVisibile){
+      var color=hasCatture?'#dc2626':'#1e40af';
+      var weight=hasCatture?5:3;
+      var opacity=hasCatture?0.9:0.6;
+      var latlngs=t.punti.map(function(p){return [p.lat,p.lon];});
+      var line=L.polyline(latlngs,{color:color,weight:weight,opacity:opacity,smoothFactor:1}).addTo(mapInstance);
+      line.bindPopup(trkMapBuildPopup(t),{maxWidth:300,className:'fd-track-popup'});
+      trkMapLayers.push(line);
+    }
+
+    // PIN CATTURE GPS (solo se toggle catture attivo e se ci sono)
+    if(catMapVisibile&&Array.isArray(t.spot_catture)&&t.spot_catture.length){
+      t.spot_catture.forEach(function(sc){
+        if(!sc.lat||!sc.lon)return;
+        var icon=L.divIcon({
+          className:'fd-catch-pin-wrap',
+          html:'<div class="fd-catch-pin">🐟</div>',
+          iconSize:[28,28],
+          iconAnchor:[14,14]
+        });
+        var marker=L.marker([sc.lat,sc.lon],{icon:icon}).addTo(mapInstance);
+        var oraCat=new Date(sc.t);
+        var oraStr2=String(oraCat.getHours()).padStart(2,'0')+':'+String(oraCat.getMinutes()).padStart(2,'0');
+        var accStr=sc.accuracy?' · precisione ±'+Math.round(sc.accuracy)+'m':'';
+        marker.bindPopup(
+          '<div class="fd-popup-header"><div class="fd-popup-date">🪝 Spot cattura GPS</div>'+
+          '<div class="fd-popup-spot">'+trkFmtData(t.data_inizio)+' · '+oraStr2+'</div></div>'+
+          '<div class="fd-popup-body">'+
+            '<div style="font-size:11px;color:#64748b">📍 '+sc.lat.toFixed(5)+', '+sc.lon.toFixed(5)+accStr+'</div>'+
+          '</div>',
+          {maxWidth:240,className:'fd-track-popup'}
+        );
+        catMapLayers.push(marker);
+      });
+    }
+  });
+
+  // fit bounds sull'ultimo tracciato (solo primo caricamento)
+  if(trkMapLayers.length&&!trkMapBoundsFatto){
+    try{
+      var bounds=L.featureGroup(trkMapLayers).getBounds();
+      mapInstance.fitBounds(bounds,{padding:[30,30]});
+      trkMapBoundsFatto=true;
+    }catch(e){}
+  }
+  aggiornaInfoTrkMap();
+}
+var trkMapBoundsFatto=false;
+var catMapLayers=[];
+var catMapVisibile=true;
+
+function aggiornaInfoTrkMap(){
+  var info=document.getElementById('trk-map-info');
+  if(!info)return;
+  if(!tracciati.length){info.textContent='Nessun tracciato registrato';return;}
+  var nTot=tracciati.length;
+  var nVis=trkMapApplicaFiltri(tracciati).length;
+  var desc=trkMapDescrFiltro();
+  if(trkMapVisibile||catMapVisibile){
+    info.textContent=nVis+'/'+nTot+' tracciati — '+desc;
+  } else {
+    info.textContent='Tutto nascosto';
+  }
+  var cnt=document.getElementById('trk-f-count');
+  if(cnt)cnt.textContent=nVis+' tracciati su '+nTot+' totali';
+}
+
+function trkMapDescrFiltro(){
+  var f=trkMapFiltriState;
+  if(f.periodo==='ultimo')return 'solo ultimo';
+  if(f.periodo==='7')return 'ultimi 7 giorni';
+  if(f.periodo==='30')return 'ultimi 30 giorni';
+  if(f.periodo==='stagione')return 'stagione corrente';
+  if(f.periodo==='tutti')return 'tutti';
+  return '';
+}
+
+// Stato filtri Mappa
+var trkMapFiltriState={periodo:'ultimo',zona:'',voto:0,catture:''};
+
+function trkMapApplicaFiltri(list){
+  var f=trkMapFiltriState;
+  // Periodo
+  var filtrati;
+  if(f.periodo==='ultimo'){
+    var ultimoId=trkMapGetUltimoId();
+    filtrati=list.filter(function(t){return t.id===ultimoId;});
+  } else if(f.periodo==='7'||f.periodo==='30'){
+    var giorni=parseInt(f.periodo);
+    var limite=Date.now()-giorni*86400000;
+    filtrati=list.filter(function(t){
+      var d=t.data_inizio?new Date(t.data_inizio).getTime():0;
+      return d>=limite;
+    });
+  } else if(f.periodo==='stagione'){
+    // ultimi 180 giorni (6 mesi) come proxy di "stagione corrente"
+    var lim180=Date.now()-180*86400000;
+    filtrati=list.filter(function(t){
+      var d=t.data_inizio?new Date(t.data_inizio).getTime():0;
+      return d>=lim180;
+    });
+  } else {
+    filtrati=list.slice();
+  }
+  // Zona / Voto / Catture (richiedono uscita associata)
+  if(f.zona||f.voto>0||f.catture){
+    filtrati=filtrati.filter(function(t){
+      var u=t.uscita_id?uscite.find(function(x){return x.id===t.uscita_id;}):null;
+      if(!u){
+        // tracciati senza uscita associata: se ci sono filtri su attributi uscita, li escludo (tranne se filtro catture='senza', che sarebbe ambiguo → li escludo comunque)
+        return false;
+      }
+      if(f.zona&&u.zona!==f.zona)return false;
+      if(f.voto>0&&(parseInt(u.voto||0))<f.voto)return false;
+      if(f.catture==='con'&&(!u.catture||u.catture.length===0))return false;
+      if(f.catture==='senza'&&(u.catture&&u.catture.length>0))return false;
+      return true;
+    });
+  }
+  return filtrati;
+}
+
+function trkMapFiltri(){
+  var p=document.getElementById('trk-f-periodo');
+  var z=document.getElementById('trk-f-zona');
+  var v=document.getElementById('trk-f-voto');
+  var c=document.getElementById('trk-f-catture');
+  if(p)trkMapFiltriState.periodo=p.value;
+  if(z)trkMapFiltriState.zona=z.value;
+  if(v)trkMapFiltriState.voto=parseInt(v.value||0);
+  if(c)trkMapFiltriState.catture=c.value;
+  trkMapBoundsFatto=false; // ricentro su nuovo risultato
+  trkMapRender();
+}
+
+function trkMapFiltriReset(){
+  trkMapFiltriState={periodo:'ultimo',zona:'',voto:0,catture:''};
+  var p=document.getElementById('trk-f-periodo');if(p)p.value='ultimo';
+  var z=document.getElementById('trk-f-zona');if(z)z.value='';
+  var v=document.getElementById('trk-f-voto');if(v)v.value='0';
+  var c=document.getElementById('trk-f-catture');if(c)c.value='';
+  trkMapBoundsFatto=false;
+  trkMapRender();
+}
+
+function trkFiltriToggle(){
+  var body=document.getElementById('trk-filtri-body');
+  var chev=document.getElementById('trk-filtri-chevron');
+  if(!body)return;
+  var aperto=body.style.display!=='none';
+  body.style.display=aperto?'none':'block';
+  if(chev)chev.textContent=aperto?'▼':'▲';
+}
+
+function trkMapToggle(){
+  trkMapVisibile=!trkMapVisibile;
+  var btn=document.getElementById('tog-tracciati');
+  if(btn){
+    if(trkMapVisibile){
+      btn.style.background='#1e3a5f';
+      btn.style.color='#fff';
+    } else {
+      btn.style.background='#fafcff';
+      btn.style.color='var(--muted)';
+    }
+  }
+  trkMapRender();
+}
+
+function catMapToggle(){
+  catMapVisibile=!catMapVisibile;
+  var btn=document.getElementById('tog-catture');
+  if(btn){
+    if(catMapVisibile){
+      btn.style.background='#dc2626';
+      btn.style.color='#fff';
+    } else {
+      btn.style.background='#fafcff';
+      btn.style.color='var(--muted)';
+    }
+  }
+  trkMapRender();
+}
+
+// Azione bottone "Esplora" nel popup: zoom sul tracciato
+function trkMapEsplora(trackId){
+  var t=tracciati.find(function(x){return x.id===trackId;});
+  if(!t||!t.punti||!t.punti.length||!mapInstance)return;
+  var latlngs=t.punti.map(function(p){return [p.lat,p.lon];});
+  try{
+    mapInstance.fitBounds(L.latLngBounds(latlngs),{padding:[40,40],maxZoom:16});
+  }catch(e){}
+  mapInstance.closePopup();
+}
+
+// Azione bottone "Storico" nel popup: naviga allo Storico e scorre alla card
+function trkMapApriStorico(uscitaId){
+  mapInstance.closePopup();
+  // trovo il tab Storico e lo clicco (riuso listener showPanel)
+  var tabStorico=document.querySelector('.tab[onclick*="storico"]');
+  if(tabStorico){
+    tabStorico.click();
+  }
+  setTimeout(function(){
+    var card=document.querySelector('[data-uscita-id="'+uscitaId+'"]');
+    if(card){
+      card.scrollIntoView({behavior:'smooth',block:'center'});
+      card.style.transition='box-shadow .3s';
+      card.style.boxShadow='0 0 0 3px #e07b39';
+      setTimeout(function(){card.style.boxShadow='';},1800);
+    }
+  },300);
+}
+// ===== FINE TRACCIATI SU MAPPA =====
 
 function renderStats(){
   var el=document.getElementById('stats-content');
