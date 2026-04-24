@@ -329,7 +329,7 @@ if(localStorage.getItem('fd_pwd_ok')===_PWD_HASH){
     <div>
       <div class="header-title">🎣 Fishing Diary</div>
       <div style="font-size:16px;font-weight:600;color:#fff;opacity:.9;margin-top:4px;text-shadow:0 1px 3px rgba(0,0,0,.4);padding-left:1.6em">Laguna di Venezia</div>
-      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.44 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
+      <div style="font-size:12px;color:#fff;opacity:.85;margin-top:4px;padding-left:1.6em;letter-spacing:.05em;text-shadow:0 1px 3px rgba(0,0,0,.4)">vers. 4.3.45 · <a href="https://docs.google.com/forms/d/e/1FAIpQLSdixNuJt0e-KEVQgPTVMowOy4RxPMTRqrkozU_R-AoeFHy4zA/viewform?usp=header" target="_blank" style="color:#fff;opacity:.9;text-decoration:underline">✉️ Segnala un problema</a></div>
       <div class="header-info" style="margin-top:8px">I dati vengono salvati nel browser. <b>Esporta</b> regolarmente in JSON/CSV per non perderli.</div>
     </div>
     <div class="header-pescatore">
@@ -2633,9 +2633,14 @@ var trk={
   wakeLock:null,
   timerUI:null,
   timerBackup:null,
+  timerSampling:null,
+  ultimoPuntoSalvato:null,
   azionePending:null,
   ultimoTapCattura:0
 };
+// Parametri campionamento GPS (v4.3.45)
+var TRK_SAMPLE_MS=15000;  // ogni 15s
+var TRK_MIN_DIST_M=8;     // deduplica spaziale 8m
 var tracciati=[];
 var TRK_STORAGE='pesca_tracciati';
 var TRK_BACKUP='pesca_tracciato_in_corso';
@@ -2784,25 +2789,32 @@ function trkStart(){
     }).catch(function(){});
   }
 
+  // Campionamento GPS v4.3.45: doppio meccanismo (watchPosition + setInterval)
+  // con deduplica spaziale unificata a 8m. Risolve il problema dei gap lunghi
+  // (iOS Safari non chiama watchPosition in modo affidabile quando la barca
+  // è ferma o si muove lentamente).
+  trk.ultimoPuntoSalvato=null;
+
   // Primo rilevamento immediato
   navigator.geolocation.getCurrentPosition(function(pos){
-    trk.punti.push({lat:pos.coords.latitude,lon:pos.coords.longitude,t:Date.now()});
-    trkAggiornaUI();
+    trkProcessaPosizione(pos.coords.latitude,pos.coords.longitude,Date.now());
   },function(){},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
 
-  // watchPosition per aggiornamenti continui (il sistema decide la frequenza,
-  // ma noi registriamo solo ogni 30s)
-  var ultimoSalvato=0;
+  // watchPosition: cattura aggiornamenti spontanei di iOS/Android
   trk.watchId=navigator.geolocation.watchPosition(function(pos){
-    var ora=Date.now();
-    if(ora-ultimoSalvato>=30000){
-      trk.punti.push({lat:pos.coords.latitude,lon:pos.coords.longitude,t:ora});
-      ultimoSalvato=ora;
-      trkAggiornaUI();
-    }
+    trkProcessaPosizione(pos.coords.latitude,pos.coords.longitude,Date.now());
   },function(err){
-    console.warn('GPS errore tracciato:',err);
+    console.warn('GPS errore tracciato (watch):',err);
   },{enableHighAccuracy:true,maximumAge:0});
+
+  // setInterval: forza campionamento ogni 15s, indipendente dal sistema
+  trk.timerSampling=setInterval(function(){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      trkProcessaPosizione(pos.coords.latitude,pos.coords.longitude,Date.now());
+    },function(err){
+      console.warn('GPS errore tracciato (interval):',err);
+    },{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+  },TRK_SAMPLE_MS);
 
   // UI live ogni secondo
   trk.timerUI=setInterval(trkAggiornaUI,1000);
@@ -2812,11 +2824,27 @@ function trkStart(){
   trkAggiornaUI();
 }
 
+// Deduplica spaziale unificata: un punto viene salvato solo se dista
+// almeno TRK_MIN_DIST_M metri dall'ultimo punto salvato.
+// Chiamata sia da watchPosition sia da setInterval.
+function trkProcessaPosizione(lat,lon,t){
+  if(!trk.attivo)return;
+  var last=trk.ultimoPuntoSalvato;
+  if(last){
+    var dist=trkDistMetri({lat:last.lat,lon:last.lon},{lat:lat,lon:lon});
+    if(dist<TRK_MIN_DIST_M)return; // troppo vicino, scarta
+  }
+  trk.punti.push({lat:lat,lon:lon,t:t});
+  trk.ultimoPuntoSalvato={lat:lat,lon:lon,t:t};
+  trkAggiornaUI();
+}
+
 function trkStop(){
   if(!trk.attivo)return;
   if(trk.watchId!==null){navigator.geolocation.clearWatch(trk.watchId);trk.watchId=null;}
   if(trk.timerUI){clearInterval(trk.timerUI);trk.timerUI=null;}
   if(trk.timerBackup){clearInterval(trk.timerBackup);trk.timerBackup=null;}
+  if(trk.timerSampling){clearInterval(trk.timerSampling);trk.timerSampling=null;}
   if(trk.wakeLock){trk.wakeLock.release();trk.wakeLock=null;}
 
   if(trk.punti.length>=2){
@@ -2842,6 +2870,7 @@ function trkStop(){
   trk.spot_catture=[];
   trk.idCorrente=null;
   trk.tInizio=null;
+  trk.ultimoPuntoSalvato=null;
   trkAggiornaUI();
 
   // Se Storico è aperto, aggiorna la lista tracciati
